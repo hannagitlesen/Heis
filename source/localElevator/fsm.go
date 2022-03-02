@@ -67,7 +67,7 @@ func DoorTimeout(elev *Elevator) {
 			//BROADCAST
 		} else {
 			elev.Behaviour = Moving
-			//BROADCAST
+			//BROADCAS
 		}
 	}
 }
