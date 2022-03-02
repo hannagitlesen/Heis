@@ -1,8 +1,6 @@
-module main
+module Heis
 
-require Driver-go v0.0.0
-replace Driver-go => ../Driver-go
+go 1.16
 
-
-require Network-go v0.0.0
-replace Network-go => ../Network-go
+require localelevator v0.0.0
+replace localelevator => ./localElevator

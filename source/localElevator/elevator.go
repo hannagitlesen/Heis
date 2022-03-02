@@ -1,21 +1,25 @@
+package localelevator
 
-package elevator
+const NumFloors = 4
+const NumButtons = 3
 
-import "elevio"
+type ElevBehaviour int
 
-type ElevBehaviour int const (
-	Idle = 0
-	DoorOpen = 1
-	Moving = 2
-
+const (
+	Idle     ElevBehaviour = 0
+	DoorOpen ElevBehaviour = 1
+	Moving   ElevBehaviour = 2
 )
 
 type Elevator struct {
-	Floor int
-	Direction elevio.MotorDirection
-	Requests [][]bool
+	Floor     int
+	Direction MotorDirection
+	Requests  [][NumButtons]bool
 	Behaviour ElevBehaviour
-
 }
 
-
+func NewElevator() Elevator {
+	e := Elevator{}
+	e.Requests = make([][NumButtons]bool, NumFloors)
+	return e
+}

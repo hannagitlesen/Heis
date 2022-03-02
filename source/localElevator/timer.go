@@ -1,7 +1,1 @@
-
-import {
-	"time"
-}
-
-func GetWallTime() 
-	time = 
+package localelevator
