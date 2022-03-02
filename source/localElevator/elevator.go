@@ -2,6 +2,7 @@ package localelevator
 
 const NumFloors = 4
 const NumButtons = 3
+const DoorTimerDuration = 3
 
 type ElevBehaviour int
 

@@ -1,5 +1,9 @@
 package localelevator
 
+import ( 
+	"time"
+)
+
 func SetAllLocalLights(elev *Elevator) {
 	SetFloorIndicator(elev.Floor)
 
@@ -37,7 +41,7 @@ func NewOrder(elev *Elevator, order ButtonEvent) {
 	}
 }
 
-func ArrivedAtFloor(elev *Elevator, floor int) {
+func ArrivedAtFloor(elev *Elevator, floor int, doorTimer *Timer) {
 	elev.Floor = floor
 	//TRENGER VI LYS HER
 	switch elev.Behaviour {
@@ -54,7 +58,6 @@ func ArrivedAtFloor(elev *Elevator, floor int) {
 	default:
 		break
 	}
-}
 
 func DoorTimeout(elev *Elevator) {
 	switch elev.Behaviour {
@@ -67,8 +70,11 @@ func DoorTimeout(elev *Elevator) {
 			//BROADCAST
 		} else {
 			elev.Behaviour = Moving
-			//BROADCAS
+			//BROADCAST
 		}
 	}
 }
 
+func FSM {
+	doorTimer := time.NewTimer(time.Duration(DoorTimerDuration) * time.Second)
+}
