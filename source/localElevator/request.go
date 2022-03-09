@@ -90,15 +90,18 @@ func RequestsShouldStop(elev Elevator) bool {
 }
 
 func RequestsClearAtCurrentFloor(elev *Elevator) {
+	elev.Requests[elev.Floor][BT_Cab] = false 
 	switch elev.Direction {
 	case MD_Up:
 		if !RequestsAbove(*elev) && !elev.Requests[elev.Floor][BT_HallUp] {
 			elev.Requests[elev.Floor][BT_HallDown] = false //Tar med de som skal ned
 		}
+		elev.Requests[elev.Floor][BT_HallUp] = false
 	case MD_Down:
 		if !RequestsBelow(*elev) && !elev.Requests[elev.Floor][BT_HallDown] {
 			elev.Requests[elev.Floor][BT_HallUp] = false //Tar med de som skal opp
 		}
+		elev.Requests[elev.Floor][BT_HallDown] = false
 		//VI MÅ KANSKJE LEGGE TIL NOE HER
 	}
 }

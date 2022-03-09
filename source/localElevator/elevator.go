@@ -17,6 +17,7 @@ type Elevator struct {
 	Direction MotorDirection
 	Requests  [][NumButtons]bool
 	Behaviour ElevBehaviour
+	Obstructed bool
 }
 
 func NewElevator() Elevator {
