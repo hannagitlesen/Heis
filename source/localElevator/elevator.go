@@ -1,8 +1,8 @@
 package localelevator
 
-const NumFloors = 4
-const NumButtons = 3
-const DoorTimerDuration = 3
+import (
+	"config"
+)
 
 type ElevBehaviour int
 
@@ -15,13 +15,13 @@ const (
 type Elevator struct {
 	Floor     int
 	Direction MotorDirection
-	Requests  [][NumButtons]bool
+	Requests  [][config.NumButtons]bool
 	Behaviour ElevBehaviour
 	Obstructed bool
 }
 
 func NewElevator() Elevator {
 	e := Elevator{}
-	e.Requests = make([][NumButtons]bool, NumFloors)
+	e.Requests = make([][config.NumButtons]bool, config.NumFloors)
 	return e
 }

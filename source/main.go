@@ -2,12 +2,15 @@ package main
 
 import (
 	le "localelevator"
+	"config"
+//	"assigner"
+//	"network"
 )
 
 func main() {
 	//e := le.NewElevator()
 	//fmt.Printf("%+v\n", e)
-	le.Init("localhost:15657", le.NumFloors)
+	le.Init("localhost:15657", config.NumFloors)
 
 	ch_newLocalState := make(chan le.ElevBehaviour) //buffer channels?
 	ch_orderToElev := make(chan le.ButtonEvent)

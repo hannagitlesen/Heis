@@ -1,0 +1,50 @@
+package config
+
+
+const NumFloors = 4
+const NumButtons = 3
+const DoorTimerDuration = 3
+const TravelTime = 5
+
+type MotorDirection int
+const (
+	MD_Up   MotorDirection = 1
+	MD_Down                = -1
+	MD_Stop                = 0
+)
+
+type ButtonEvent struct {
+	Floor  int
+	Button ButtonType
+}
+
+type ButtonType int
+const (
+	BT_HallUp   ButtonType = 0
+	BT_HallDown            = 1
+	BT_Cab                 = 2
+)
+
+type ElevBehaviour int
+const (
+	Idle     ElevBehaviour = 0
+	DoorOpen ElevBehaviour = 1
+	Moving   ElevBehaviour = 2
+	Unavailable ElevBehaviour = 3
+)
+
+type RequestsState int 
+const (
+	None RequestsState = 0
+	Unconfirmed RequestsState = 1
+	Confirmed RequestsState = 2
+	Completed RequestsState = 3
+)
+
+type DistributorElevator struct {
+	ID string
+	Floor int
+	Direction MotorDirection
+	Requests  [][]RequestsState
+	Behaviour ElevBehaviour
+}
