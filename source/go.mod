@@ -19,3 +19,15 @@ replace network => ./network
 
 require watchdog v0.0.0
 replace watchdog => ./watchdog
+
+require bcast v0.0.0
+replace bcast => ./network/bcast
+
+require conn v0.0.0
+replace conn => ./network/conn
+
+require localip v0.0.0
+replace localip => ./network/localip
+
+require peers v0.0.0
+replace peers => ./network/peers
