@@ -16,7 +16,7 @@ func SetAllLocalLights(elev *Elevator) {
 
 
 func FSM(
-	ch_newLocalState chan ElevBehaviour,
+	ch_newLocalState chan Elevator,
 	ch_orderToElev chan ButtonEvent,
 	ch_arrivedAtFloors chan int,
 	ch_obstr chan bool) { //SKAL VI GIDDE STOP?

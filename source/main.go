@@ -36,15 +36,19 @@ func main() {
 	//go run main.go -port=our_port -id=our_id
 	var port string
 	flag.StringVar(&port, "port", "", "port of this peer")
-	var id string
-	flag.StringVar(&id, "id", "", "id of this peer")
 	flag.Parse()
-	
+
+	var id string
+	if id == "" {
+		id = config.GetLocalIP()
+	}
+
 	le.Init("localhost:"+port, config.NumFloors)
 
 	//Channels for communication between distributor and local elevator	
-	ch_newLocalState := make(chan le.ElevBehaviour)
+	ch_newLocalState := make(chan le.Elevator)
 	ch_orderToElev := make(chan le.ButtonEvent)
+	ch_newLocalOrder := make(chan le.ButtonEvent)
 
 	//Channels for communication between local elevator and elevio
 	ch_arrivedAtFloors := make(chan int)
@@ -53,15 +57,15 @@ func main() {
 	//Channels for communication between distributor and network
 	ch_peerUpdate := make(chan peers.PeerUpdate)
 	ch_peerTxEnable := make(chan bool)
-	ch_NetworkMessageTx := make(chan []config.DistributorElevator)
-	ch_NetworkMessageRx := make(chan []config.DistributorElevator)
+	ch_NetworkMessageTx := make(chan map[string]config.DistributorElevator)
+	ch_NetworkMessageRx := make(chan map[string]config.DistributorElevator)
 
 	//Channels for communication between distributor and watchdog
 	ch_watchdogPet := make(chan bool)
 	ch_watchdogBark := make(chan bool)
 
 	//Goroutines for local elevator
-	go le.PollButtons(ch_orderToElev)
+	go le.PollButtons(ch_newLocalOrder)
 	go le.PollFloorSensor(ch_arrivedAtFloors)
 	go le.PollObstructionSwitch(ch_obstr)
 

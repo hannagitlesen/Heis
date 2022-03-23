@@ -1,5 +1,11 @@
 package config
 
+import (
+	"fmt"
+	"os"
+	"localip"
+)
+
 const NumFloors = 4
 const NumButtons = 3
 const DoorTimerDuration = 3
@@ -53,4 +59,14 @@ type DistributorElevator struct {
 	Direction MotorDirection
 	Requests  [][]RequestsState
 	Behaviour ElevBehaviour
+}
+
+func GetLocalIP() string {
+	localIP, err := localip.LocalIP()
+		if err != nil {
+			fmt.Println(err)
+			localIP = "DISCONNECTED"
+		}
+	id := fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
+	return id
 }

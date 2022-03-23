@@ -2,6 +2,7 @@ package assigner
 
 import (
 	"config"
+	le "localelevator"
 )
 
 func RequestsAbove(elev config.DistributorElevator) bool {
@@ -110,7 +111,7 @@ func RequestsClearAtCurrentFloor(elev *config.DistributorElevator) {
 	}
 }
 
-func TimeToIdle(e *config.DistributorElevator, request config.ButtonEvent) int {
+func TimeToIdle(e *config.DistributorElevator, request le.ButtonEvent) int {
 	duration := 0
 
 	elev := new(config.DistributorElevator)
