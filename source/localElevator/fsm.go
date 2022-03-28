@@ -58,15 +58,13 @@ func FSM(
 					doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
 					SetDoorOpenLamp(true)
 					elev.Behaviour = DoorOpen
-					//BROADCAST NEWLOCAL STATE
-		
 				} else {
 					elev.Requests[order.Floor][order.Button] = true
 					RequestsNextAction(e)
 					SetMotorDirection(elev.Direction)
-					//BROADCAST NEWLOCAL STATE
 				}
 			}
+			ch_newLocalState <-elev
 			SetAllLocalLights(e)
 		
 		case floor := <-ch_arrivedAtFloors:
@@ -80,12 +78,12 @@ func FSM(
 					SetDoorOpenLamp(true)
 					elev.Behaviour = DoorOpen
 					doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
-					//BROADCAST NEWLOCAL STATE
 					RequestsClearAtCurrentFloor(e)
 				}
 			default:
 				break
 			}
+			ch_newLocalState <-elev
 
 		case <-doorTimer.C:
 			if !elev.Obstructed {
@@ -96,15 +94,14 @@ func FSM(
 					SetDoorOpenLamp(false)
 					if elev.Direction == MD_Stop {
 						elev.Behaviour = Idle
-						//BROADCAST
 					} else {
 						elev.Behaviour = Moving
-						//BROADCAST
 					}
 				}
 			} else {
 				doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
 			}
+			ch_newLocalState <-elev
 		case obstr := <-ch_obstr: //MOTSATT OBSTR? (hardware feil)
 			elev.Obstructed = obstr
 			if obstr && e.Behaviour == DoorOpen {

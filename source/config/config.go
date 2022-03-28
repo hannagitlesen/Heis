@@ -13,6 +13,7 @@ const TravelTime = 5
 const PeersPort = 15647
 const BcastPort = 16569
 const FailureTimeout = 5
+const ConnectTimeout = 3
 
 type MotorDirection int
 
