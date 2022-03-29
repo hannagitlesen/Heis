@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"localip"
+	"os"
 )
 
 const NumFloors = 4
@@ -12,8 +12,9 @@ const DoorTimerDuration = 3
 const TravelTime = 5
 const PeersPort = 15647
 const BcastPort = 16569
-const FailureTimeout = 5
-const ConnectTimeout = 3
+const FailureTimeout = 10
+const ConnectTimeout = 5
+const UpdateTimeout = 3
 
 type MotorDirection int
 
@@ -55,7 +56,6 @@ const (
 )
 
 type DistributorElevator struct {
-	ID        string
 	Floor     int
 	Direction MotorDirection
 	Requests  [][]RequestsState
@@ -64,10 +64,10 @@ type DistributorElevator struct {
 
 func GetLocalIP() string {
 	localIP, err := localip.LocalIP()
-		if err != nil {
-			fmt.Println(err)
-			localIP = "DISCONNECTED"
-		}
+	if err != nil {
+		fmt.Println(err)
+		localIP = "DISCONNECTED"
+	}
 	id := fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
 	return id
 }

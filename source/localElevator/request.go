@@ -90,7 +90,7 @@ func RequestsShouldStop(elev Elevator) bool {
 }
 
 func RequestsClearAtCurrentFloor(elev *Elevator) {
-	elev.Requests[elev.Floor][BT_Cab] = false 
+	elev.Requests[elev.Floor][BT_Cab] = false
 	switch elev.Direction {
 	case MD_Up:
 		if !RequestsAbove(*elev) && !elev.Requests[elev.Floor][BT_HallUp] {

@@ -12,6 +12,7 @@ import (
 	"peers"
 
 	//"os"
+	"distributor"
 	"watchdog"
 )
 
@@ -45,7 +46,7 @@ func main() {
 
 	le.Init("localhost:"+port, config.NumFloors)
 
-	//Channels for communication between distributor and local elevator	
+	//Channels for communication between distributor and local elevator
 	ch_newLocalState := make(chan le.Elevator)
 	ch_orderToElev := make(chan le.ButtonEvent)
 	ch_newLocalOrder := make(chan le.ButtonEvent)
@@ -79,6 +80,21 @@ func main() {
 
 	//Goroutine for watchdog
 	go watchdog.Watchdog(config.FailureTimeout, ch_watchdogPet, ch_watchdogBark)
+
+	//Goroutine for distributor
+	go distributor.Distributor(
+		id,
+		ch_newLocalState,
+		ch_newLocalOrder,
+		ch_orderToElev,
+		ch_arrivedAtFloors,
+		ch_obstr,
+		ch_peerUpdate,
+		ch_peerTxEnable,
+		ch_NetworkMessageTx,
+		ch_NetworkMessageRx,
+		ch_watchdogPet,
+		ch_watchdogBark)
 
 	select {}
 }

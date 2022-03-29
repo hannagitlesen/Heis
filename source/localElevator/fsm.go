@@ -1,8 +1,9 @@
 package localelevator
 
 import (
-	"time"
 	"config"
+	"fmt"
+	"time"
 )
 
 func SetAllLocalLights(elev *Elevator) {
@@ -11,18 +12,15 @@ func SetAllLocalLights(elev *Elevator) {
 	for f := range elev.Requests {
 		SetButtonLamp(BT_Cab, f, elev.Requests[f][BT_Cab])
 	}
-	//FLYTTER HALL TIL DISTRIBUTOR
 }
 
-
 func FSM(
-	ch_newLocalState chan Elevator,
+	ch_newLocalState chan<- Elevator,
 	ch_orderToElev chan ButtonEvent,
 	ch_arrivedAtFloors chan int,
 	ch_obstr chan bool) { //SKAL VI GIDDE STOP?
 
 	doorTimer := time.NewTimer(time.Duration(config.DoorTimerDuration) * time.Second)
-	//TIMER UPDATE STATE?
 
 	elev := NewElevator()
 	e := &elev
@@ -37,10 +35,9 @@ func FSM(
 	SetAllLocalLights(e)
 	SetDoorOpenLamp(false)
 
-	//BROADCAST NEW ELEVATOR ON NETWORK
+	timerUpdateStates := time.NewTimer(time.Duration(config.UpdateTimeout) * time.Second)
 
 	for {
-		SetAllLocalLights(e)
 		select {
 		case order := <-ch_orderToElev:
 			switch elev.Behaviour {
@@ -54,6 +51,7 @@ func FSM(
 				elev.Requests[order.Floor][order.Button] = true
 			case Idle:
 				if elev.Floor == order.Floor {
+					//elev.Requests[order.Floor][order.Button] = true
 					SetAllLocalLights(e)
 					doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
 					SetDoorOpenLamp(true)
@@ -64,16 +62,14 @@ func FSM(
 					SetMotorDirection(elev.Direction)
 				}
 			}
-			ch_newLocalState <-elev
+			ch_newLocalState <- elev
 			SetAllLocalLights(e)
-		
+
 		case floor := <-ch_arrivedAtFloors:
 			elev.Floor = floor
-			//TRENGER VI LYS HER
 			switch elev.Behaviour {
 			case Moving:
 				if RequestsShouldStop(*e) {
-					//TRENGER VI LYS HER
 					SetMotorDirection(MD_Stop)
 					SetDoorOpenLamp(true)
 					elev.Behaviour = DoorOpen
@@ -83,7 +79,9 @@ func FSM(
 			default:
 				break
 			}
-			ch_newLocalState <-elev
+			SetAllLocalLights(e)
+			ch_newLocalState <- elev
+			fmt.Println("Arrived new floor")
 
 		case <-doorTimer.C:
 			if !elev.Obstructed {
@@ -101,13 +99,18 @@ func FSM(
 			} else {
 				doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
 			}
-			ch_newLocalState <-elev
+			ch_newLocalState <- elev
+
 		case obstr := <-ch_obstr: //MOTSATT OBSTR? (hardware feil)
 			elev.Obstructed = obstr
 			if obstr && e.Behaviour == DoorOpen {
 				doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
 				//OPPSTART AKTIV??
 			}
+
+		case <-timerUpdateStates.C:
+			ch_newLocalState <- elev
+			timerUpdateStates.Reset(time.Duration(config.UpdateTimeout) * time.Second)
 		}
 	}
 }
