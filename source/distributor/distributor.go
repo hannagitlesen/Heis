@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//Ah
+//Ahhhhhhhhhh
 func InitDistributorElev() config.DistributorElevator {
 	requests := make([][]config.RequestsState, config.NumFloors)
 	for floor := range requests {
