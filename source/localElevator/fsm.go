@@ -9,14 +9,15 @@ import (
 func SetAllLocalLights(elev *Elevator) {
 	SetFloorIndicator(elev.Floor)
 
-	for f := range elev.Requests {
-		SetButtonLamp(BT_Cab, f, elev.Requests[f][BT_Cab])
+	for floor := range elev.Requests {
+		SetButtonLamp(BT_Cab, floor, elev.Requests[floor][BT_Cab])
 	}
 }
 
 func FSM(
 	ch_newLocalState chan<- Elevator,
 	ch_orderToElev chan ButtonEvent,
+	ch_clearLocalHallOrders chan bool,
 	ch_arrivedAtFloors chan int,
 	ch_obstr chan bool) { //SKAL VI GIDDE STOP?
 
@@ -111,6 +112,14 @@ func FSM(
 		case <-timerUpdateStates.C:
 			ch_newLocalState <- elev
 			timerUpdateStates.Reset(time.Duration(config.UpdateTimeout) * time.Second)
+		
+		case <-ch_clearLocalHallOrders:
+			fmt.Println("clear local hall orders")
+			for floor := range elev.Requests{
+				for button := config.BT_HallUp; button <= config.BT_HallDown; button++ {
+					elev.Requests[floor][button] = false
+				}
+			}
 		}
 	}
 }

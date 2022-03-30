@@ -36,20 +36,22 @@ func main() {
 
 	//go run main.go -port=our_port -id=our_id
 	var port string
-	flag.StringVar(&port, "port", "", "port of this peer")
-	flag.Parse()
-
 	var id string
-	if id == "" {
-		id = config.GetLocalIP()
-	}
-
+	flag.StringVar(&port, "port", "", "port of this peer")
+	flag.StringVar(&id, "id", "", "id of this peer")
+	flag.Parse()
+	// if true {
+	// 	panic("")
+	// }
+	
+	
 	le.Init("localhost:"+port, config.NumFloors)
 
 	//Channels for communication between distributor and local elevator
 	ch_newLocalState := make(chan le.Elevator)
-	ch_orderToElev := make(chan le.ButtonEvent)
-	ch_newLocalOrder := make(chan le.ButtonEvent)
+	ch_orderToElev := make(chan le.ButtonEvent, 100)
+	ch_newLocalOrder := make(chan le.ButtonEvent, 100)
+	ch_clearLocalHallOrders := make(chan bool)
 
 	//Channels for communication between local elevator and elevio
 	ch_arrivedAtFloors := make(chan int)
@@ -70,7 +72,7 @@ func main() {
 	go le.PollFloorSensor(ch_arrivedAtFloors)
 	go le.PollObstructionSwitch(ch_obstr)
 
-	go le.FSM(ch_newLocalState, ch_orderToElev, ch_arrivedAtFloors, ch_obstr)
+	go le.FSM(ch_newLocalState, ch_orderToElev, ch_clearLocalHallOrders, ch_arrivedAtFloors, ch_obstr)
 
 	//Goroutines for network
 	go peers.Transmitter(config.PeersPort, id, ch_peerTxEnable)
@@ -86,6 +88,7 @@ func main() {
 		id,
 		ch_newLocalState,
 		ch_newLocalOrder,
+		ch_clearLocalHallOrders,
 		ch_orderToElev,
 		ch_arrivedAtFloors,
 		ch_obstr,

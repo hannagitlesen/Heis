@@ -77,6 +77,7 @@ func RequestsNextAction(elev *Elevator) {
 		}
 	}
 }
+//Enten koke Marte og de eller sjekke: hvis du har bestilling her og ingen bestillinger over/under
 
 func RequestsShouldStop(elev Elevator) bool {
 	switch elev.Direction {

@@ -47,6 +47,7 @@ func Distributor(
 	myID string,
 	ch_newLocalState chan le.Elevator,
 	ch_newLocalOrder chan le.ButtonEvent,
+	ch_clearLocalHallOrders chan bool,
 	ch_orderToElev chan le.ButtonEvent,
 	ch_arrivedAtFloors chan int,
 	ch_obstr chan bool,
@@ -79,30 +80,39 @@ func Distributor(
 			}
 		}
 		Broadcast(elevators, ch_NetworkMessageTx)
+		SetHallLights(elevators)
+		fmt.Println("before break")
+		time.Sleep(time.Second)
 		break
 	case <-connectTimer.C:
+		fmt.Println("connect timer")
 		break
 	}
+
 	for {
 		select {
 		case newLocalOrder := <-ch_newLocalOrder:
-			assigner.AssignOrder(elevators, newLocalOrder)
+			assigner.AssignOrder(elevators, newLocalOrder, myID)
+			fmt.Println("new local order")
 			if elevators[myID].Requests[newLocalOrder.Floor][newLocalOrder.Button] == config.Unconfirmed {
+				fmt.Println("My order")
 				Broadcast(elevators, ch_NetworkMessageTx)
+				fmt.Println("before confirmed")
 				elevators[myID].Requests[newLocalOrder.Floor][newLocalOrder.Button] = config.Confirmed
+				fmt.Println("before lights")
 				SetHallLights(elevators)
 				ch_orderToElev <- newLocalOrder
+				fmt.Println("given order to fsm")
 			}
-
+			fmt.Println("before broadcast")
+			SetHallLights(elevators)
 			Broadcast(elevators, ch_NetworkMessageTx)
 
 		case newState := <-ch_newLocalState:
 			fmt.Println("New local state")
 			fmt.Println(newState)
 			fmt.Println(elevators[myID])
-			//if newState.Behaviour == le.ElevBehaviour(config.Unavailable) {
-			//kjøre reassign??
-			//}
+
 			if newState.Floor != elevators[myID].Floor || newState.Behaviour == le.DoorOpen || newState.Behaviour == le.Idle { //Trenger vi å sjekke endring i direction?
 				elevators[myID].Floor = newState.Floor
 				ch_watchdogPet <- false
@@ -120,19 +130,35 @@ func Distributor(
 					}
 				}
 			}
+			SetHallLights(elevators)
 			fmt.Println(elevators[myID])
 			Broadcast(elevators, ch_NetworkMessageTx)
-			SetHallLights(elevators)
 
 		case updatedElevators := <-ch_NetworkMessageRx:
 			//Updates the local map of elevators
 			fmt.Println("Updated elevators")
 			for ID, elev := range updatedElevators {
+				if elev.Behaviour == config.Unavailable {
+					assigner.ReassignOrder(elevators, ch_newLocalOrder, myID)
+					for floor := range elev.Requests {
+						for button := config.BT_HallUp; button <= config.BT_HallDown; button++ {
+							elevators[ID].Requests[floor][button] = config.None
+						}
+					}
+					SetHallLights(elevators)
+				}
+
 				for floor := range elev.Requests {
 					for button := range elev.Requests[floor] {
 						if _, IDexist := elevators[ID]; !IDexist {
 							elevators[ID] = &elev
 							fmt.Println("New ID")
+						}
+						if len(updatedElevators) > 2 {
+							panic("")
+						}
+						if len(elevators) > 2 {
+							panic("")
 						}
 						//Når en ny heis kobles på, sliter den med å kopiere den andre heisens ordre
 						if !(updatedElevators[myID].Requests[floor][button] == config.Unconfirmed && elevators[myID].Requests[floor][button] == config.Confirmed) {
@@ -140,36 +166,42 @@ func Distributor(
 						}
 						if elevators[myID].Behaviour != config.Unavailable && elevators[myID].Requests[floor][button] == config.Unconfirmed {
 							elevators[myID].Requests[floor][button] = config.Confirmed
+							fmt.Println("Confirm")
 							ch_orderToElev <- le.ButtonEvent{floor, le.ButtonType(button)}
+							SetHallLights(elevators)
 							Broadcast(elevators, ch_NetworkMessageTx)
 						}
 						if elev.Requests[floor][button] == config.Completed {
+							fmt.Println("Remove orders")
 							elevators[ID].Requests[floor][button] = config.None
-							Broadcast(elevators, ch_NetworkMessageTx) //Skal vi flytt broadcast ut av for-loopen?
+							Broadcast(elevators, ch_NetworkMessageTx)
 						}
-						SetHallLights(elevators)
 					}
 				}
 				elevators[ID].Floor = updatedElevators[ID].Floor
 				elevators[ID].Direction = updatedElevators[ID].Direction
 				elevators[ID].Behaviour = updatedElevators[ID].Behaviour
 			}
+			SetHallLights(elevators)
 			fmt.Println(elevators[myID])
 
-		// Reassign orders to elevators - uenig
+		case peerUpdate := <-ch_peerUpdate:
+			if len(peerUpdate.Lost) != 0 {
+				for _, lostID := range peerUpdate.Lost {
+					for ID, elev := range elevators {
+						if lostID == ID {
+							elev.Behaviour = config.Unavailable // kan det oppstå problem hvis id-en ikke er i dennes elevators
+						}
+					}
+				}
+				Broadcast(elevators, ch_NetworkMessageTx)
+			}
 
-		//case peerUpdate := <-ch_peerUpdate:
-
-		case <-ch_watchdogBark:
+		case <-ch_watchdogBark: //Når den starter igjen her - kommer vi ut av for-loopen?
 			fmt.Println("Watchdog")
 			elevators[myID].Behaviour = config.Unavailable
 			Broadcast(elevators, ch_NetworkMessageTx)
-			for floor := range elevators[myID].Requests {
-				for button := range elevators[myID].Requests[floor] {
-					elevators[myID].Requests[floor][button] = config.None
-				}
-			}
-
+			ch_clearLocalHallOrders <- true
 		}
 
 	}
