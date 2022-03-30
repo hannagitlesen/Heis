@@ -71,12 +71,10 @@ func RequestsNextAction(elev *Elevator) {
 		} else if RequestsBelow(*elev) {
 			elev.Direction = MD_Down
 			elev.Behaviour = Moving
-		} else {
-			elev.Direction = MD_Stop
-			elev.Behaviour = Idle
 		}
 	}
 }
+
 //Enten koke Marte og de eller sjekke: hvis du har bestilling her og ingen bestillinger over/under
 
 func RequestsShouldStop(elev Elevator) bool {
@@ -90,21 +88,24 @@ func RequestsShouldStop(elev Elevator) bool {
 	}
 }
 
-func RequestsClearAtCurrentFloor(elev *Elevator) {
+func RequestsClearAtCurrentFloor(elev Elevator) {
 	elev.Requests[elev.Floor][BT_Cab] = false
 	switch elev.Direction {
 	case MD_Up:
-		if !RequestsAbove(*elev) && !elev.Requests[elev.Floor][BT_HallUp] {
+		if !RequestsAbove(elev) && !elev.Requests[elev.Floor][BT_HallUp] {
 			elev.Requests[elev.Floor][BT_HallDown] = false //Tar med de som skal ned
 		}
 		elev.Requests[elev.Floor][BT_HallUp] = false
 	case MD_Down:
-		if !RequestsBelow(*elev) && !elev.Requests[elev.Floor][BT_HallDown] {
+		if !RequestsBelow(elev) && !elev.Requests[elev.Floor][BT_HallDown] {
 			elev.Requests[elev.Floor][BT_HallUp] = false //Tar med de som skal opp
 		}
 		elev.Requests[elev.Floor][BT_HallDown] = false
-		//VI MÅ KANSKJE LEGGE TIL NOE HER
+	case MD_Stop:
+		elev.Requests[elev.Floor][BT_HallDown] = false
+		elev.Requests[elev.Floor][BT_HallUp] = false
 	}
+
 }
 
 //EN TIL FUNKSJON HER?????

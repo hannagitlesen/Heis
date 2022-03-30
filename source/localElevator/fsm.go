@@ -73,9 +73,12 @@ func FSM(
 				if RequestsShouldStop(*e) {
 					SetMotorDirection(MD_Stop)
 					SetDoorOpenLamp(true)
+					if !RequestsAbove(elev) && !RequestsBelow(elev) {
+						elev.Direction = MD_Stop
+					}
 					elev.Behaviour = DoorOpen
 					doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
-					RequestsClearAtCurrentFloor(e)
+					RequestsClearAtCurrentFloor(*e)
 				}
 			default:
 				break
@@ -112,10 +115,10 @@ func FSM(
 		case <-timerUpdateStates.C:
 			ch_newLocalState <- elev
 			timerUpdateStates.Reset(time.Duration(config.UpdateTimeout) * time.Second)
-		
+
 		case <-ch_clearLocalHallOrders:
 			fmt.Println("clear local hall orders")
-			for floor := range elev.Requests{
+			for floor := range elev.Requests {
 				for button := config.BT_HallUp; button <= config.BT_HallDown; button++ {
 					elev.Requests[floor][button] = false
 				}
