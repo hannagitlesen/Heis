@@ -6,6 +6,10 @@ require localelevator v0.0.0
 
 replace localelevator => ./localElevator
 
+require elevio v0.0.0
+
+replace elevio => ./elevio
+
 require distributor v0.0.0
 
 replace distributor => ./distributor

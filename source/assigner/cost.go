@@ -2,7 +2,7 @@ package assigner
 
 import (
 	"config"
-	le "localelevator"
+	"elevio"
 )
 
 func RequestsAbove(elev config.DistributorElevator) bool {
@@ -111,17 +111,17 @@ func RequestsClearAtCurrentFloor(elev *config.DistributorElevator) {
 	}
 }
 
-func TimeToIdle(e *config.DistributorElevator, request le.ButtonEvent) int {
+func TimeToIdle(elev config.DistributorElevator, request elevio.ButtonEvent) int {
 	duration := 0
 
-	elev := new(config.DistributorElevator)
-	*elev = *e
+	// elev := new(config.DistributorElevator)
+	// *elev = e
 
 	elev.Requests[request.Floor][request.Button] = config.Confirmed
 
 	switch elev.Behaviour {
 	case config.Idle:
-		RequestsNextAction(elev)
+		RequestsNextAction(&elev)
 		if elev.Direction == config.MD_Stop {
 			return duration
 		}
@@ -133,10 +133,10 @@ func TimeToIdle(e *config.DistributorElevator, request le.ButtonEvent) int {
 	}
 
 	for {
-		if RequestsShouldStop(*elev) {
-			RequestsClearAtCurrentFloor(elev)
+		if RequestsShouldStop(elev) {
+			RequestsClearAtCurrentFloor(&elev)
 			duration += config.DoorTimerDuration
-			RequestsNextAction(elev)
+			RequestsNextAction(&elev)
 			if elev.Direction == config.MD_Stop {
 				return duration
 			}

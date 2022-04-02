@@ -4,43 +4,49 @@ import (
 	"config"
 	"fmt"
 	"time"
+	"elevio"
 )
 
 func SetAllLocalLights(elev *Elevator) {
-	SetFloorIndicator(elev.Floor)
+	elevio.SetFloorIndicator(elev.Floor)
 
 	for floor := range elev.Requests {
-		SetButtonLamp(BT_Cab, floor, elev.Requests[floor][BT_Cab])
+		// for button:= range elev.Requests[floor] {
+		// 	SetButtonLamp(ButtonType(button), floor, elev.Requests[floor][button])
+		// }
+		elevio.SetButtonLamp(elevio.BT_Cab, floor, elev.Requests[floor][elevio.BT_Cab])
 	}
 }
 
 func FSM(
 	ch_newLocalState chan<- Elevator,
-	ch_orderToElev chan ButtonEvent,
-	ch_clearLocalHallOrders chan bool,
+	ch_orderToFSM chan elevio.ButtonEvent,
+	ch_resetLocalHallOrders chan bool,
 	ch_arrivedAtFloors chan int,
-	ch_obstr chan bool) { //SKAL VI GIDDE STOP?
+	ch_obstr chan bool,
+) { 
 
 	doorTimer := time.NewTimer(time.Duration(config.DoorTimerDuration) * time.Second)
 
 	elev := NewElevator()
 	e := &elev
 
-	SetMotorDirection(MD_Down)
+	elevio.SetMotorDirection(elevio.MD_Down)
 	for { //Sender heis ned til nærmeste etasje
 		floor := <-ch_arrivedAtFloors
-		SetMotorDirection(MD_Stop)
+		elevio.SetMotorDirection(elevio.MD_Stop)
 		e.Floor = floor
 		break
 	}
 	SetAllLocalLights(e)
-	SetDoorOpenLamp(false)
+	elevio.SetDoorOpenLamp(false)
 
-	timerUpdateStates := time.NewTimer(time.Duration(config.UpdateTimeout) * time.Second)
+	timerUpdateStates := time.NewTimer(time.Duration(config.LocalStateUpdate) * time.Second)
 
 	for {
+		ch_newLocalState <- elev
 		select {
-		case order := <-ch_orderToElev:
+		case order := <-ch_orderToFSM:
 			switch elev.Behaviour {
 			case DoorOpen:
 				if elev.Floor == order.Floor {
@@ -55,15 +61,14 @@ func FSM(
 					//elev.Requests[order.Floor][order.Button] = true
 					SetAllLocalLights(e)
 					doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
-					SetDoorOpenLamp(true)
+					elevio.SetDoorOpenLamp(true)
 					elev.Behaviour = DoorOpen
 				} else {
 					elev.Requests[order.Floor][order.Button] = true
 					RequestsNextAction(e)
-					SetMotorDirection(elev.Direction)
+					elevio.SetMotorDirection(elev.Direction)
 				}
 			}
-			ch_newLocalState <- elev
 			SetAllLocalLights(e)
 
 		case floor := <-ch_arrivedAtFloors:
@@ -71,10 +76,10 @@ func FSM(
 			switch elev.Behaviour {
 			case Moving:
 				if RequestsShouldStop(*e) {
-					SetMotorDirection(MD_Stop)
-					SetDoorOpenLamp(true)
+					elevio.SetMotorDirection(elevio.MD_Stop)
+					elevio.SetDoorOpenLamp(true)
 					if !RequestsAbove(elev) && !RequestsBelow(elev) {
-						elev.Direction = MD_Stop
+						elev.Direction = elevio.MD_Stop
 					}
 					elev.Behaviour = DoorOpen
 					doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
@@ -84,7 +89,6 @@ func FSM(
 				break
 			}
 			SetAllLocalLights(e)
-			ch_newLocalState <- elev
 			fmt.Println("Arrived new floor")
 
 		case <-doorTimer.C:
@@ -92,9 +96,9 @@ func FSM(
 				switch elev.Behaviour {
 				case DoorOpen:
 					RequestsNextAction(e)
-					SetMotorDirection(elev.Direction)
-					SetDoorOpenLamp(false)
-					if elev.Direction == MD_Stop {
+					elevio.SetMotorDirection(elev.Direction)
+					elevio.SetDoorOpenLamp(false)
+					if elev.Direction == elevio.MD_Stop {
 						elev.Behaviour = Idle
 					} else {
 						elev.Behaviour = Moving
@@ -103,7 +107,6 @@ func FSM(
 			} else {
 				doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
 			}
-			ch_newLocalState <- elev
 
 		case obstr := <-ch_obstr: //MOTSATT OBSTR? (hardware feil)
 			elev.Obstructed = obstr
@@ -113,10 +116,10 @@ func FSM(
 			}
 
 		case <-timerUpdateStates.C:
-			ch_newLocalState <- elev
-			timerUpdateStates.Reset(time.Duration(config.UpdateTimeout) * time.Second)
+			// Koblingen mellom dette og watchdog??? Nødvendig?
+			timerUpdateStates.Reset(time.Duration(config.LocalStateUpdate) * time.Second)
 
-		case <-ch_clearLocalHallOrders:
+		case <-ch_resetLocalHallOrders:
 			fmt.Println("clear local hall orders")
 			for floor := range elev.Requests {
 				for button := config.BT_HallUp; button <= config.BT_HallDown; button++ {

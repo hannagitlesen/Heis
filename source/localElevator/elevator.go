@@ -2,6 +2,7 @@ package localelevator
 
 import (
 	"config"
+	"elevio"
 )
 
 type ElevBehaviour int
@@ -14,7 +15,7 @@ const (
 
 type Elevator struct {
 	Floor     int
-	Direction MotorDirection
+	Direction elevio.MotorDirection
 	Requests  [][config.NumButtons]bool
 	Behaviour ElevBehaviour
 	Obstructed bool

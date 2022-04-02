@@ -3,18 +3,12 @@ package assigner
 import (
 	"config"
 	"fmt"
-	le "localelevator"
+	"elevio"
 )
 
-func AssignOrder(elevators map[string]*config.DistributorElevator, request le.ButtonEvent, myID string) {
-	if len(elevators) == 1 { // single elevator
-		for _, elev := range elevators {
-			elev.Requests[request.Floor][request.Button] = config.Unconfirmed
-			return
-		}
-	}
+func AssignOrder(elevators map[string]config.DistributorElevator, request elevio.ButtonEvent, myID string) string {
 	id := "NoID"
-	if request.Button == config.BT_Cab {
+	if len(elevators) == 1 || request.Button == config.BT_Cab { // single elevator
 		id = myID
 	} else {
 		minCost := 9999
@@ -32,10 +26,10 @@ func AssignOrder(elevators map[string]*config.DistributorElevator, request le.Bu
 			}
 		}
 	}
-	elevators[id].Requests[request.Floor][request.Button] = config.Unconfirmed
+	return id
 }
 
-func ReassignOrder(elevators map[string]*config.DistributorElevator, ch_newLocalOrder chan le.ButtonEvent, myID string) {
+func ReassignOrder(elevators map[string]*config.DistributorElevator, ch_newLocalOrder chan elevio.ButtonEvent, myID string) {
 	fmt.Println("reassign")
 	highestID := ""
 	for ID, elev := range elevators {
@@ -53,7 +47,7 @@ func ReassignOrder(elevators map[string]*config.DistributorElevator, ch_newLocal
 				for button := config.BT_HallUp; button <= config.BT_HallDown; button++ {
 					if elev.Requests[floor][button] == config.Unconfirmed || elev.Requests[floor][button] == config.Confirmed {
 						if highestID == myID {
-							ch_newLocalOrder <- le.ButtonEvent{floor, le.ButtonType(button)}
+							ch_newLocalOrder <- elevio.ButtonEvent{floor, elevio.ButtonType(button)}
 							fmt.Println("sent local order")
 						}
 					}

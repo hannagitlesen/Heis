@@ -1,4 +1,4 @@
-package localelevator
+package elevio
 
 import (
 	"fmt"

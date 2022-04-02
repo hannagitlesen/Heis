@@ -3,6 +3,7 @@ package main
 import (
 	"config"
 	le "localelevator"
+	"elevio"
 
 	//	"assigner"
 	"bcast"
@@ -43,15 +44,14 @@ func main() {
 	// if true {
 	// 	panic("")
 	// }
-	
-	
-	le.Init("localhost:"+port, config.NumFloors)
+
+	elevio.Init("localhost:"+port, config.NumFloors)
 
 	//Channels for communication between distributor and local elevator
 	ch_newLocalState := make(chan le.Elevator)
-	ch_orderToElev := make(chan le.ButtonEvent, 100)
-	ch_newLocalOrder := make(chan le.ButtonEvent, 100)
-	ch_clearLocalHallOrders := make(chan bool)
+	ch_orderToFSM := make(chan elevio.ButtonEvent, 100)
+	ch_buttonPress := make(chan elevio.ButtonEvent, 100)
+	ch_resetLocalHallOrders := make(chan bool)
 
 	//Channels for communication between local elevator and elevio
 	ch_arrivedAtFloors := make(chan int)
@@ -60,19 +60,20 @@ func main() {
 	//Channels for communication between distributor and network
 	ch_peerUpdate := make(chan peers.PeerUpdate)
 	ch_peerTxEnable := make(chan bool)
-	ch_NetworkMessageTx := make(chan map[string]config.DistributorElevator)
-	ch_NetworkMessageRx := make(chan map[string]config.DistributorElevator)
+	ch_NetworkMessageTx := make(chan config.BroadcastMessage)
+	ch_NetworkMessageRx := make(chan config.BroadcastMessage)
+	ch_orderFromRemoteElev := make(chan config.OrderMessage)
 
 	//Channels for communication between distributor and watchdog
 	ch_watchdogPet := make(chan bool)
 	ch_watchdogBark := make(chan bool)
 
 	//Goroutines for local elevator
-	go le.PollButtons(ch_newLocalOrder)
-	go le.PollFloorSensor(ch_arrivedAtFloors)
-	go le.PollObstructionSwitch(ch_obstr)
+	go elevio.PollButtons(ch_buttonPress)
+	go elevio.PollFloorSensor(ch_arrivedAtFloors)
+	go elevio.PollObstructionSwitch(ch_obstr)
 
-	go le.FSM(ch_newLocalState, ch_orderToElev, ch_clearLocalHallOrders, ch_arrivedAtFloors, ch_obstr)
+	go le.FSM(ch_newLocalState, ch_orderToFSM, ch_resetLocalHallOrders, ch_arrivedAtFloors, ch_obstr)
 
 	//Goroutines for network
 	go peers.Transmitter(config.PeersPort, id, ch_peerTxEnable)
@@ -81,21 +82,22 @@ func main() {
 	go bcast.Receiver(config.BcastPort, ch_NetworkMessageRx)
 
 	//Goroutine for watchdog
-	go watchdog.Watchdog(config.FailureTimeout, ch_watchdogPet, ch_watchdogBark)
+	go watchdog.Watchdog(config.WatchdogTimeout, ch_watchdogPet, ch_watchdogBark)
 
 	//Goroutine for distributor
 	go distributor.Distributor(
 		id,
 		ch_newLocalState,
-		ch_newLocalOrder,
-		ch_clearLocalHallOrders,
-		ch_orderToElev,
+		ch_buttonPress,
+		ch_resetLocalHallOrders,
+		ch_orderToFSM,
 		ch_arrivedAtFloors,
 		ch_obstr,
 		ch_peerUpdate,
 		ch_peerTxEnable,
 		ch_NetworkMessageTx,
 		ch_NetworkMessageRx,
+		ch_orderFromRemoteElev,
 		ch_watchdogPet,
 		ch_watchdogBark)
 

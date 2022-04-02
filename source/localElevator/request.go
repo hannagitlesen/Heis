@@ -1,5 +1,9 @@
 package localelevator
 
+import (
+	"elevio"
+)
+
 func RequestsAbove(elev Elevator) bool {
 	for f := elev.Floor + 1; f < len(elev.Requests); f++ {
 		for btn := range elev.Requests[f] {
@@ -33,43 +37,43 @@ func RequestsHere(elev Elevator) bool {
 
 func RequestsNextAction(elev *Elevator) {
 	switch elev.Direction {
-	case MD_Up:
+	case elevio.MD_Up:
 		if RequestsAbove(*elev) {
-			elev.Direction = MD_Up
+			elev.Direction = elevio.MD_Up
 			elev.Behaviour = Moving
 		} else if RequestsHere(*elev) {
-			elev.Direction = MD_Down
+			elev.Direction = elevio.MD_Down
 			elev.Behaviour = DoorOpen
 		} else if RequestsBelow(*elev) {
-			elev.Direction = MD_Down
+			elev.Direction = elevio.MD_Down
 			elev.Behaviour = Moving
 		} else {
-			elev.Direction = MD_Stop
+			elev.Direction = elevio.MD_Stop
 			elev.Behaviour = Idle
 		}
-	case MD_Down:
+	case elevio.MD_Down:
 		if RequestsBelow(*elev) {
-			elev.Direction = MD_Down
+			elev.Direction = elevio.MD_Down
 			elev.Behaviour = Moving
 		} else if RequestsHere(*elev) {
-			elev.Direction = MD_Up
+			elev.Direction = elevio.MD_Up
 			elev.Behaviour = DoorOpen
 		} else if RequestsAbove(*elev) {
-			elev.Direction = MD_Up
+			elev.Direction = elevio.MD_Up
 			elev.Behaviour = Moving
 		} else {
-			elev.Direction = MD_Stop
+			elev.Direction = elevio.MD_Stop
 			elev.Behaviour = Idle
 		}
-	case MD_Stop:
+	case elevio.MD_Stop:
 		if RequestsHere(*elev) {
-			elev.Direction = MD_Stop
+			elev.Direction = elevio.MD_Stop
 			elev.Behaviour = DoorOpen
 		} else if RequestsAbove(*elev) {
-			elev.Direction = MD_Up
+			elev.Direction = elevio.MD_Up
 			elev.Behaviour = Moving
 		} else if RequestsBelow(*elev) {
-			elev.Direction = MD_Down
+			elev.Direction = elevio.MD_Down
 			elev.Behaviour = Moving
 		}
 	}
@@ -79,31 +83,31 @@ func RequestsNextAction(elev *Elevator) {
 
 func RequestsShouldStop(elev Elevator) bool {
 	switch elev.Direction {
-	case MD_Down:
-		return elev.Requests[elev.Floor][BT_HallDown] || elev.Requests[elev.Floor][BT_Cab] || !RequestsBelow(elev)
-	case MD_Up:
-		return elev.Requests[elev.Floor][BT_HallUp] || elev.Requests[elev.Floor][BT_Cab] || !RequestsAbove(elev)
+	case elevio.MD_Down:
+		return elev.Requests[elev.Floor][elevio.BT_HallDown] || elev.Requests[elev.Floor][elevio.BT_Cab] || !RequestsBelow(elev)
+	case elevio.MD_Up:
+		return elev.Requests[elev.Floor][elevio.BT_HallUp] || elev.Requests[elev.Floor][elevio.BT_Cab] || !RequestsAbove(elev)
 	default:
 		return true
 	}
 }
 
 func RequestsClearAtCurrentFloor(elev Elevator) {
-	elev.Requests[elev.Floor][BT_Cab] = false
+	elev.Requests[elev.Floor][elevio.BT_Cab] = false
 	switch elev.Direction {
-	case MD_Up:
-		if !RequestsAbove(elev) && !elev.Requests[elev.Floor][BT_HallUp] {
-			elev.Requests[elev.Floor][BT_HallDown] = false //Tar med de som skal ned
+	case elevio.MD_Up:
+		if !RequestsAbove(elev) && !elev.Requests[elev.Floor][elevio.BT_HallUp] {
+			elev.Requests[elev.Floor][elevio.BT_HallDown] = false //Tar med de som skal ned
 		}
-		elev.Requests[elev.Floor][BT_HallUp] = false
-	case MD_Down:
-		if !RequestsBelow(elev) && !elev.Requests[elev.Floor][BT_HallDown] {
-			elev.Requests[elev.Floor][BT_HallUp] = false //Tar med de som skal opp
+		elev.Requests[elev.Floor][elevio.BT_HallUp] = false
+	case elevio.MD_Down:
+		if !RequestsBelow(elev) && !elev.Requests[elev.Floor][elevio.BT_HallDown] {
+			elev.Requests[elev.Floor][elevio.BT_HallUp] = false //Tar med de som skal opp
 		}
-		elev.Requests[elev.Floor][BT_HallDown] = false
-	case MD_Stop:
-		elev.Requests[elev.Floor][BT_HallDown] = false
-		elev.Requests[elev.Floor][BT_HallUp] = false
+		elev.Requests[elev.Floor][elevio.BT_HallDown] = false
+	case elevio.MD_Stop:
+		elev.Requests[elev.Floor][elevio.BT_HallDown] = false
+		elev.Requests[elev.Floor][elevio.BT_HallUp] = false
 	}
 
 }
