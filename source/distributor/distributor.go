@@ -2,15 +2,16 @@ package distributor
 
 import (
 	"assigner"
+	"bcast"
 	"config"
 	"elevio"
 	"fmt"
-	le "localelevator"
+	localElev "localelevator"
 	"peers"
 	"time"
+	"watchdog"
 )
 
-//Ahhhhhhhhhh
 func InitDistributorElev() config.DistributorElevator {
 	requests := make([][]config.RequestsState, config.NumFloors)
 	for floor := range requests {
@@ -68,19 +69,32 @@ func SetHallLights(elevators map[string]config.DistributorElevator) {
 
 func Distributor(
 	myID string,
-	ch_newLocalState chan le.Elevator,
+	ch_newLocalState chan localElev.Elevator,
 	ch_buttonPress chan elevio.ButtonEvent,
 	ch_resetLocalHallOrders chan bool,
 	ch_orderToElev chan elevio.ButtonEvent,
 	ch_arrivedAtFloors chan int,
 	ch_obstr chan bool,
-	ch_peerUpdate chan peers.PeerUpdate,
-	ch_peerTxEnable chan bool,
-	ch_NetworkMessageTx chan config.BroadcastMessage,
-	ch_NetworkMessageRx chan config.BroadcastMessage,
-	ch_orderFromRemoteElev chan config.OrderMessage,
-	ch_watchdogPet chan bool,
-	ch_watchdogBark chan bool) {
+) {
+
+	//Channels for communication between distributor and network
+	ch_peerUpdate := make(chan peers.PeerUpdate)
+	ch_peerTxEnable := make(chan bool)
+	ch_NetworkMessageTx := make(chan config.BroadcastMessage)
+	ch_NetworkMessageRx := make(chan config.BroadcastMessage)
+
+	//Channels for communication between distributor and watchdog
+	ch_watchdogPet := make(chan bool)
+	ch_watchdogBark := make(chan bool)
+
+	//Goroutines for network
+	go peers.Transmitter(config.PeersPort, myID, ch_peerTxEnable)
+	go peers.Receiver(config.PeersPort, ch_peerUpdate)
+	go bcast.Transmitter(config.BcastPort, ch_NetworkMessageTx)
+	go bcast.Receiver(config.BcastPort, ch_NetworkMessageRx)
+
+	//Goroutine for watchdog
+	go watchdog.Watchdog(config.WatchdogTimeout, ch_watchdogPet, ch_watchdogBark)
 
 	elevators := make(map[string]*config.DistributorElevator)
 	thisElevator := new(config.DistributorElevator)
@@ -92,26 +106,28 @@ func Distributor(
 
 	select {
 	case initMsgFromNetwork := <-ch_NetworkMessageRx:
-		for ID, elev := range initMsgFromNetwork.ElevStatusMsg {
-			if ID == myID {
-				for floor := range elevators[myID].Requests {
-					if elev.Requests[floor][config.BT_Cab] == config.Confirmed || elev.Requests[floor][config.BT_Cab] == config.Unconfirmed {
-						ch_buttonPress <- elevio.ButtonEvent{floor, config.BT_Cab}
+		if initMsgFromNetwork.MsgType == config.ElevStatus {
+			for ID, elev := range initMsgFromNetwork.ElevStatusMsg {
+				if ID == myID {
+					for floor := range elevators[myID].Requests {
+						if elev.Requests[floor][config.BT_Cab] == config.Confirmed || elev.Requests[floor][config.BT_Cab] == config.Unconfirmed {
+							ch_buttonPress <- elevio.ButtonEvent{floor, config.BT_Cab}
+						}
 					}
+				} else {
+					tempElev := DeepCopyElev(elev)
+					elevators[ID] = &tempElev
 				}
-			} else { //Make sure that new elevator is updated on states
-				tempElev := DeepCopyElev(elev)
-				elevators[ID] = &tempElev
 			}
+
+			order := new(config.OrderMessage)
+			Broadcast(myID, config.MessageType(config.ElevStatus), elevators, *order, ch_NetworkMessageTx)
+
+			elevatorsCopy := DeepCopyElevMap(elevators)
+			SetHallLights(elevatorsCopy)
+			time.Sleep(time.Second)
+			break
 		}
-
-		order := new(config.OrderMessage)
-		Broadcast(myID, config.MessageType(config.ElevStatus), elevators, *order, ch_NetworkMessageTx)
-
-		elevatorsCopy := DeepCopyElevMap(elevators)
-		SetHallLights(elevatorsCopy)
-		time.Sleep(time.Second)
-		break
 	case <-connectTimer.C:
 		break
 	}
@@ -122,8 +138,7 @@ func Distributor(
 			fmt.Printf("Before assigner:  %v\t: %+v\n", myID, elevators[myID])
 
 			elevatorsCopy := DeepCopyElevMap(elevators)
-
-			assignedID := assigner.AssignOrder(elevatorsCopy, newLocalOrder, myID) //Pass by value/reference, kan det være denne som sletter ordre?
+			assignedID := assigner.AssignOrder(elevatorsCopy, newLocalOrder, myID)
 
 			fmt.Printf("After assigner:  %v\t: %+v\n", myID, elevators[myID])
 
@@ -146,7 +161,7 @@ func Distributor(
 				fmt.Printf("  %v\t: %+v\n", k, v)
 			}
 
-			if newState.Floor != elevators[myID].Floor || newState.Behaviour == le.DoorOpen || newState.Behaviour == le.Idle { //Trenger vi å sjekke endring i direction?
+			if newState.Floor != elevators[myID].Floor || newState.Behaviour == localElev.DoorOpen || newState.Behaviour == localElev.Idle { //Hva med motorstopp i idle/dooropen? er det viktig?
 				elevators[myID].Floor = newState.Floor
 				ch_watchdogPet <- false
 			}
@@ -168,20 +183,16 @@ func Distributor(
 				}
 			}
 
-			// order := new(config.OrderMessage)
-			// Broadcast(myID, config.MessageType(config.ElevStatus), elevators, *order, ch_NetworkMessageTx)
-			//SetHallLights(elevators)
-
 		case msgFromNetwork := <-ch_NetworkMessageRx:
 
 			switch msgFromNetwork.MsgType {
 			case config.Order:
+				newOrder := msgFromNetwork.OrderMsg.Order
 				fmt.Printf("New order, sender ID:  %v\n", msgFromNetwork.SenderID)
-				// Må vi sjekke om vi selv er unavailable????
 				if msgFromNetwork.OrderMsg.AssignedID == myID {
-					if !(elevators[myID].Requests[msgFromNetwork.OrderMsg.Order.Floor][msgFromNetwork.OrderMsg.Order.Button] == config.Confirmed) {
-						elevators[myID].Requests[msgFromNetwork.OrderMsg.Order.Floor][msgFromNetwork.OrderMsg.Order.Button] = config.Unconfirmed
-						ch_orderToElev <- msgFromNetwork.OrderMsg.Order
+					if !(elevators[myID].Requests[newOrder.Floor][newOrder.Button] == config.Confirmed) {
+						elevators[myID].Requests[newOrder.Floor][newOrder.Button] = config.Unconfirmed
+						ch_orderToElev <- newOrder
 					}
 				}
 
@@ -206,13 +217,12 @@ func Distributor(
 									elevators[myID].Requests[floor][button] = config.Unconfirmed
 									ch_orderToElev <- elevio.ButtonEvent{Floor: floor, Button: button}
 								}
-								elevators[senderID].Requests[floor][button] = config.None // Kan det bli overskriving her?
-							} // Reassign????
+								elevators[senderID].Requests[floor][button] = config.None
+							}
 						}
 					} else {
 						for floor := range elevators[senderID].Requests {
 							for button := range elevators[senderID].Requests[floor] {
-								// Må det være en condition her?
 								// bug: transition from unconf to none is still allowed by this! that's wrong!
 								//fmt.Printf("[distributor] transition (via sender %s) f:%v b:%v to %v\n", senderID, floor, button, msgFromNetwork.ElevStatusMsg[senderID].Requests[floor][button])
 								elevators[senderID].Requests[floor][button] = msgFromNetwork.ElevStatusMsg[senderID].Requests[floor][button]
@@ -224,7 +234,6 @@ func Distributor(
 
 						fmt.Printf("senderID: %v\n", senderID)
 						fmt.Printf("copied from net:  %v\t: %+v\n", senderID, elevators[senderID])
-						//fmt.Printf("copied from net:  %v\t: %+v\n", myID, elevators[myID])
 					}
 				}
 			}
@@ -252,16 +261,14 @@ func Distributor(
 									}
 									elev.Requests[floor][button] = config.None // Kan det bli overskriving her?
 								}
-								elev.Requests[floor][elevio.BT_Cab] = config.None // denne må gjøres penere
+								//Fjerne cab ordre? virker ikke sånn
 							}
-
 						}
 					}
 				}
 			}
-			//Broadcast?? Nei?
 
-		case <-ch_watchdogBark: //Når den starter igjen her - kommer vi ut av for-loopen?
+		case <-ch_watchdogBark:
 			fmt.Println("Watchdog")
 			elevators[myID].Behaviour = config.Unavailable
 			order := new(config.OrderMessage)

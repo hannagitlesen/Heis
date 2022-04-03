@@ -79,8 +79,6 @@ func RequestsNextAction(elev *Elevator) {
 	}
 }
 
-//Enten koke Marte og de eller sjekke: hvis du har bestilling her og ingen bestillinger over/under
-
 func RequestsShouldStop(elev Elevator) bool {
 	switch elev.Direction {
 	case elevio.MD_Down:
@@ -97,19 +95,18 @@ func RequestsClearAtCurrentFloor(elev Elevator) {
 	switch elev.Direction {
 	case elevio.MD_Up:
 		if !RequestsAbove(elev) && !elev.Requests[elev.Floor][elevio.BT_HallUp] {
-			elev.Requests[elev.Floor][elevio.BT_HallDown] = false //Tar med de som skal ned
+			elev.Requests[elev.Floor][elevio.BT_HallDown] = false 
 		}
 		elev.Requests[elev.Floor][elevio.BT_HallUp] = false
 	case elevio.MD_Down:
 		if !RequestsBelow(elev) && !elev.Requests[elev.Floor][elevio.BT_HallDown] {
-			elev.Requests[elev.Floor][elevio.BT_HallUp] = false //Tar med de som skal opp
+			elev.Requests[elev.Floor][elevio.BT_HallUp] = false 
 		}
 		elev.Requests[elev.Floor][elevio.BT_HallDown] = false
 	case elevio.MD_Stop:
 		elev.Requests[elev.Floor][elevio.BT_HallDown] = false
 		elev.Requests[elev.Floor][elevio.BT_HallUp] = false
 	}
-
 }
 
-//EN TIL FUNKSJON HER?????
+

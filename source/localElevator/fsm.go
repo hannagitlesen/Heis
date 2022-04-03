@@ -2,18 +2,15 @@ package localelevator
 
 import (
 	"config"
+	"elevio"
 	"fmt"
 	"time"
-	"elevio"
 )
 
 func SetAllLocalLights(elev *Elevator) {
 	elevio.SetFloorIndicator(elev.Floor)
 
 	for floor := range elev.Requests {
-		// for button:= range elev.Requests[floor] {
-		// 	SetButtonLamp(ButtonType(button), floor, elev.Requests[floor][button])
-		// }
 		elevio.SetButtonLamp(elevio.BT_Cab, floor, elev.Requests[floor][elevio.BT_Cab])
 	}
 }
@@ -24,7 +21,7 @@ func FSM(
 	ch_resetLocalHallOrders chan bool,
 	ch_arrivedAtFloors chan int,
 	ch_obstr chan bool,
-) { 
+) {
 
 	doorTimer := time.NewTimer(time.Duration(config.DoorTimerDuration) * time.Second)
 
@@ -58,7 +55,6 @@ func FSM(
 				elev.Requests[order.Floor][order.Button] = true
 			case Idle:
 				if elev.Floor == order.Floor {
-					//elev.Requests[order.Floor][order.Button] = true
 					SetAllLocalLights(e)
 					doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
 					elevio.SetDoorOpenLamp(true)
@@ -78,9 +74,6 @@ func FSM(
 				if RequestsShouldStop(*e) {
 					elevio.SetMotorDirection(elevio.MD_Stop)
 					elevio.SetDoorOpenLamp(true)
-					if !RequestsAbove(elev) && !RequestsBelow(elev) {
-						elev.Direction = elevio.MD_Stop
-					}
 					elev.Behaviour = DoorOpen
 					doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
 					RequestsClearAtCurrentFloor(*e)
@@ -89,13 +82,26 @@ func FSM(
 				break
 			}
 			SetAllLocalLights(e)
-			fmt.Println("Arrived new floor")
 
 		case <-doorTimer.C:
-			if !elev.Obstructed {
+			if elev.Obstructed {
+				doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
+				break
+			}
+
+			switch elev.Behaviour {
+			case DoorOpen:
+				RequestsNextAction(e)
+
 				switch elev.Behaviour {
 				case DoorOpen:
-					RequestsNextAction(e)
+					elevio.SetDoorOpenLamp(true)
+					doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
+					RequestsClearAtCurrentFloor(*e)
+					SetAllLocalLights(e)
+				case Moving:
+					fallthrough
+				case Idle:
 					elevio.SetMotorDirection(elev.Direction)
 					elevio.SetDoorOpenLamp(false)
 					if elev.Direction == elevio.MD_Stop {
@@ -104,15 +110,12 @@ func FSM(
 						elev.Behaviour = Moving
 					}
 				}
-			} else {
-				doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
 			}
 
-		case obstr := <-ch_obstr: //MOTSATT OBSTR? (hardware feil)
+		case obstr := <-ch_obstr: 
 			elev.Obstructed = obstr
 			if obstr && e.Behaviour == DoorOpen {
 				doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
-				//OPPSTART AKTIV??
 			}
 
 		case <-timerUpdateStates.C:

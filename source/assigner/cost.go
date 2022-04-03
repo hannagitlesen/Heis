@@ -99,12 +99,12 @@ func RequestsClearAtCurrentFloor(elev *config.DistributorElevator) {
 	switch elev.Direction {
 	case config.MD_Up:
 		if !RequestsAbove(*elev) && elev.Requests[elev.Floor][config.BT_HallUp] == config.None {
-			elev.Requests[elev.Floor][config.BT_HallDown] = config.None //Tar med de som skal ned
+			elev.Requests[elev.Floor][config.BT_HallDown] = config.None 
 		}
 		elev.Requests[elev.Floor][config.BT_HallUp] = config.None
 	case config.MD_Down:
 		if !RequestsBelow(*elev) && elev.Requests[elev.Floor][config.BT_HallDown] == config.None {
-			elev.Requests[elev.Floor][config.BT_HallUp] = config.None //Tar med de som skal opp
+			elev.Requests[elev.Floor][config.BT_HallUp] = config.None 
 		}
 		elev.Requests[elev.Floor][config.BT_HallDown] = config.None
 		//VI MÅ KANSKJE LEGGE TIL NOE HER
@@ -113,9 +113,6 @@ func RequestsClearAtCurrentFloor(elev *config.DistributorElevator) {
 
 func TimeToIdle(elev config.DistributorElevator, request elevio.ButtonEvent) int {
 	duration := 0
-
-	// elev := new(config.DistributorElevator)
-	// *elev = *e
 
 	elev.Requests[request.Floor][request.Button] = config.Confirmed
 

@@ -22,7 +22,7 @@ type Elevator struct {
 }
 
 func NewElevator() Elevator {
-	e := Elevator{}
-	e.Requests = make([][config.NumButtons]bool, config.NumFloors)
-	return e
+	elev := Elevator{}
+	elev.Requests = make([][config.NumButtons]bool, config.NumFloors)
+	return elev
 }
