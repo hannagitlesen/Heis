@@ -15,7 +15,7 @@ const DoorTimerDuration = 3
 const WatchdogTimeout = 10 //Drit navn her
 const ConnectTimeout = 5
 const LocalStateUpdate = 3
-const BcastStateTimeout = 100
+const BcastStateTimeout = 50
 
 
 type MotorDirection int
@@ -81,3 +81,4 @@ type BroadcastMessage struct {
 	ElevStatusMsg map[string]DistributorElevator //endre navn?
 	OrderMsg OrderMessage
 }
+

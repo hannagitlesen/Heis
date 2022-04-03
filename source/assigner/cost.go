@@ -115,7 +115,7 @@ func TimeToIdle(elev config.DistributorElevator, request elevio.ButtonEvent) int
 	duration := 0
 
 	// elev := new(config.DistributorElevator)
-	// *elev = e
+	// *elev = *e
 
 	elev.Requests[request.Floor][request.Button] = config.Confirmed
 

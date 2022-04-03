@@ -20,12 +20,33 @@ func InitDistributorElev() config.DistributorElevator {
 	return config.DistributorElevator{Requests: requests, Floor: 0, Behaviour: config.Idle, Direction: config.MD_Stop}
 }
 
-func Broadcast(myID string, msgType config.MessageType, elevators map[string]*config.DistributorElevator, order config.OrderMessage, ch_NetworkMessageTx chan<- config.BroadcastMessage) {
-	elevatorsCopy := make(map[string]config.DistributorElevator, 0)
-	for id, elev := range elevators {
-		elevatorsCopy[id] = *elev
-	}
+func DeepCopyElev(elev config.DistributorElevator) config.DistributorElevator {
+	elevCopy := InitDistributorElev()
+	elevCopy.Behaviour = elev.Behaviour
+	elevCopy.Direction = elev.Direction
+	elevCopy.Floor = elev.Floor
 
+	elevCopy.Requests = make([][]config.RequestsState, config.NumFloors)
+	for floor := range elevCopy.Requests {
+		elevCopy.Requests[floor] = make([]config.RequestsState, config.NumButtons)
+		for button := range elevCopy.Requests[floor] {
+			elevCopy.Requests[floor][button] = elev.Requests[floor][button]
+		}
+	}
+	return elevCopy
+}
+
+func DeepCopyElevMap(elevators map[string]*config.DistributorElevator) map[string]config.DistributorElevator {
+	mapCopy := make(map[string]config.DistributorElevator)
+
+	for ID, elev := range elevators {
+		mapCopy[ID] = DeepCopyElev(*elev)
+	}
+	return mapCopy
+}
+
+func Broadcast(myID string, msgType config.MessageType, elevators map[string]*config.DistributorElevator, order config.OrderMessage, ch_NetworkMessageTx chan<- config.BroadcastMessage) {
+	elevatorsCopy := DeepCopyElevMap(elevators)
 	ch_NetworkMessageTx <- config.BroadcastMessage{SenderID: myID, MsgType: msgType, ElevStatusMsg: elevatorsCopy, OrderMsg: order}
 
 	time.Sleep(time.Millisecond * 50)
@@ -79,19 +100,15 @@ func Distributor(
 					}
 				}
 			} else { //Make sure that new elevator is updated on states
-				tempElev := new(config.DistributorElevator)
-				*tempElev = elev
-				elevators[ID] = tempElev
+				tempElev := DeepCopyElev(elev)
+				elevators[ID] = &tempElev
 			}
 		}
 
 		order := new(config.OrderMessage)
 		Broadcast(myID, config.MessageType(config.ElevStatus), elevators, *order, ch_NetworkMessageTx)
 
-		elevatorsCopy := make(map[string]config.DistributorElevator, 0)
-		for id, elev := range elevators {
-			elevatorsCopy[id] = *elev
-		}
+		elevatorsCopy := DeepCopyElevMap(elevators)
 		SetHallLights(elevatorsCopy)
 		time.Sleep(time.Second)
 		break
@@ -104,11 +121,12 @@ func Distributor(
 		case newLocalOrder := <-ch_buttonPress:
 			fmt.Printf("Before assigner:  %v\t: %+v\n", myID, elevators[myID])
 
-			elevatorsCopy := make(map[string]config.DistributorElevator, 0)
-			for id, elev := range elevators {
-				elevatorsCopy[id] = *elev
-			}
+			elevatorsCopy := DeepCopyElevMap(elevators)
+
 			assignedID := assigner.AssignOrder(elevatorsCopy, newLocalOrder, myID) //Pass by value/reference, kan det være denne som sletter ordre?
+
+			fmt.Printf("After assigner:  %v\t: %+v\n", myID, elevators[myID])
+
 			if assignedID == myID {
 				if !(elevators[myID].Requests[newLocalOrder.Floor][newLocalOrder.Button] == config.Confirmed) {
 					fmt.Printf("Before newLocalOrder:  %v\t: %+v\n", myID, elevators[myID])
@@ -158,6 +176,7 @@ func Distributor(
 
 			switch msgFromNetwork.MsgType {
 			case config.Order:
+				fmt.Printf("New order, sender ID:  %v\n", msgFromNetwork.SenderID)
 				// Må vi sjekke om vi selv er unavailable????
 				if msgFromNetwork.OrderMsg.AssignedID == myID {
 					if !(elevators[myID].Requests[msgFromNetwork.OrderMsg.Order.Floor][msgFromNetwork.OrderMsg.Order.Button] == config.Confirmed) {
@@ -204,7 +223,8 @@ func Distributor(
 						elevators[senderID].Behaviour = msgFromNetwork.ElevStatusMsg[senderID].Behaviour
 
 						fmt.Printf("senderID: %v\n", senderID)
-						fmt.Printf("copied from net:  %v\t: %+v\n", myID, elevators[myID])
+						fmt.Printf("copied from net:  %v\t: %+v\n", senderID, elevators[senderID])
+						//fmt.Printf("copied from net:  %v\t: %+v\n", myID, elevators[myID])
 					}
 				}
 			}
@@ -212,10 +232,7 @@ func Distributor(
 		case <-BroadcastStateTimer.C:
 			order := new(config.OrderMessage)
 			Broadcast(myID, config.MessageType(config.ElevStatus), elevators, *order, ch_NetworkMessageTx)
-			elevatorsCopy := make(map[string]config.DistributorElevator, 0)
-			for id, elev := range elevators {
-				elevatorsCopy[id] = *elev
-			}
+			elevatorsCopy := DeepCopyElevMap(elevators)
 			SetHallLights(elevatorsCopy)
 			BroadcastStateTimer.Reset(time.Duration(config.BcastStateTimeout) * time.Millisecond)
 

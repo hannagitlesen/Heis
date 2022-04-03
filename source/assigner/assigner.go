@@ -2,8 +2,8 @@ package assigner
 
 import (
 	"config"
-	"fmt"
 	"elevio"
+	"fmt"
 )
 
 func AssignOrder(elevators map[string]config.DistributorElevator, request elevio.ButtonEvent, myID string) string {
