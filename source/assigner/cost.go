@@ -107,7 +107,6 @@ func RequestsClearAtCurrentFloor(elev *config.DistributorElevator) {
 			elev.Requests[elev.Floor][config.BT_HallUp] = config.None 
 		}
 		elev.Requests[elev.Floor][config.BT_HallDown] = config.None
-		//VI MÅ KANSKJE LEGGE TIL NOE HER
 	}
 }
 

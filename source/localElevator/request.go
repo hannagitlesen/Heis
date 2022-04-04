@@ -75,6 +75,9 @@ func RequestsNextAction(elev *Elevator) {
 		} else if RequestsBelow(*elev) {
 			elev.Direction = elevio.MD_Down
 			elev.Behaviour = Moving
+		} else {
+			elev.Direction = elevio.MD_Stop
+			elev.Behaviour = Idle
 		}
 	}
 }
@@ -95,18 +98,13 @@ func RequestsClearAtCurrentFloor(elev Elevator) {
 	switch elev.Direction {
 	case elevio.MD_Up:
 		if !RequestsAbove(elev) && !elev.Requests[elev.Floor][elevio.BT_HallUp] {
-			elev.Requests[elev.Floor][elevio.BT_HallDown] = false 
+			elev.Requests[elev.Floor][elevio.BT_HallDown] = false
 		}
 		elev.Requests[elev.Floor][elevio.BT_HallUp] = false
 	case elevio.MD_Down:
 		if !RequestsBelow(elev) && !elev.Requests[elev.Floor][elevio.BT_HallDown] {
-			elev.Requests[elev.Floor][elevio.BT_HallUp] = false 
+			elev.Requests[elev.Floor][elevio.BT_HallUp] = false
 		}
 		elev.Requests[elev.Floor][elevio.BT_HallDown] = false
-	case elevio.MD_Stop:
-		elev.Requests[elev.Floor][elevio.BT_HallDown] = false
-		elev.Requests[elev.Floor][elevio.BT_HallUp] = false
 	}
 }
-
-

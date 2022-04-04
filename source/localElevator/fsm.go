@@ -3,7 +3,6 @@ package localelevator
 import (
 	"config"
 	"elevio"
-	"fmt"
 	"time"
 )
 
@@ -29,7 +28,7 @@ func FSM(
 	e := &elev
 
 	elevio.SetMotorDirection(elevio.MD_Down)
-	for { //Sender heis ned til nærmeste etasje
+	for { //Initialization: send the elevator down to closest floor
 		floor := <-ch_arrivedAtFloors
 		elevio.SetMotorDirection(elevio.MD_Stop)
 		e.Floor = floor
@@ -112,18 +111,16 @@ func FSM(
 				}
 			}
 
-		case obstr := <-ch_obstr: 
+		case obstr := <-ch_obstr:
 			elev.Obstructed = obstr
 			if obstr && e.Behaviour == DoorOpen {
 				doorTimer.Reset(time.Duration(config.DoorTimerDuration) * time.Second)
 			}
 
 		case <-timerUpdateStates.C:
-			// Koblingen mellom dette og watchdog??? Nødvendig?
 			timerUpdateStates.Reset(time.Duration(config.LocalStateUpdate) * time.Second)
 
 		case <-ch_resetLocalHallOrders:
-			fmt.Println("clear local hall orders")
 			for floor := range elev.Requests {
 				for button := config.BT_HallUp; button <= config.BT_HallDown; button++ {
 					elev.Requests[floor][button] = false

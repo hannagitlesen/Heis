@@ -7,7 +7,7 @@ import (
 
 func AssignOrder(elevators map[string]config.DistributorElevator, request elevio.ButtonEvent, myID string) string {
 	id := "NoID"
-	if len(elevators) == 1 || request.Button == config.BT_Cab { // single elevator
+	if len(elevators) == 1 || request.Button == config.BT_Cab { 
 		id = myID
 	} else {
 		minCost := 9999

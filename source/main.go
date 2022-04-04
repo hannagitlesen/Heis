@@ -2,10 +2,10 @@ package main
 
 import (
 	"config"
-	localElev "localelevator"
+	"distributor"
 	"elevio"
 	"flag"
-	"distributor"
+	localElev "localelevator"
 )
 
 func main() {
@@ -28,13 +28,10 @@ func main() {
 	ch_arrivedAtFloors := make(chan int)
 	ch_obstr := make(chan bool)
 
-
-
 	//Goroutines for local elevator
 	go elevio.PollButtons(ch_buttonPress)
 	go elevio.PollFloorSensor(ch_arrivedAtFloors)
 	go elevio.PollObstructionSwitch(ch_obstr)
-
 	go localElev.FSM(ch_newLocalState, ch_orderToFSM, ch_resetLocalHallOrders, ch_arrivedAtFloors, ch_obstr)
 
 	//Goroutine for distributor

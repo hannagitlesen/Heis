@@ -4,18 +4,16 @@ import (
 	"elevio"
 )
 
-//Fjerne typer som allerede finnes i elevio??
-
 const NumFloors = 4
 const NumButtons = 3
 const TravelTime = 5
 const PeersPort = 15647
 const BcastPort = 16569
 const DoorTimerDuration = 3
-const WatchdogTimeout = 5 //Drit navn her
-const ConnectTimeout = 3
-const LocalStateUpdate = 3
-const BcastStateTimeout = 100
+const WatchdogTimeout = 4
+const ConnectTimeout = 2
+const LocalStateUpdate = 1
+const BcastStateUpdate = 100
 
 type MotorDirection int
 
@@ -75,8 +73,8 @@ type OrderMessage struct {
 }
 
 type BroadcastMessage struct {
-	SenderID      string
-	MsgType       MessageType
-	ElevStatusMsg map[string]DistributorElevator //endre navn?
-	OrderMsg      OrderMessage
+	SenderID       string
+	MsgType        MessageType
+	ElevsStatusMsg map[string]DistributorElevator 
+	OrderMsg       OrderMessage
 }
