@@ -19,17 +19,18 @@ Config includes all global variables, structs, and enums used in the other modul
 The Assigner-module is responsible for finding the ID of the most suitable elevator for the order. It calculates a cost function based on the time until the elevators are back in idle. 
 
 #### Watchdog
-Watchdog is used to monitor if any of the elevators goes in an unavailable state
+Watchdog is used to monitor if any of the elevators goes in an unavailable state.
 
 #### Local elevator
-The localElevator-module contains the local FSM for the single elevator
+The localElevator-module contains the local FSM for the single elevator.
 
 #### Distributor
 The Distributor-module is responsible for distributing and synchronizing the connected elevators on the network. In summation it:
-* Use the Assigner-module to select the most suitable elevator for the order
-* Create channels for communication with the network. The elevators send and receive states and orders
-* Checks for elevators that enters / exits the system
-* Send orders to the local elevator
+* Use the Assigner-module to select the most suitable elevator for the order.
+* Create channels for communication with the network. The elevators send and receive states and orders.
+* Checks for elevators that enters / exits the system.
+* Send orders to the local elevator.
+* Monitors which elevators are in an unavailable state.
 
 
 
