@@ -147,7 +147,7 @@ func Distributor(
 			}
 
 		case newState := <-ch_newLocalState:
-			if newState.Floor != elevators[myID].Floor || newState.Behaviour == localElev.DoorOpen || newState.Behaviour == localElev.Idle { 
+			if newState.Floor != elevators[myID].Floor || newState.Behaviour == localElev.DoorOpen || newState.Behaviour == localElev.Idle {
 				elevators[myID].Floor = newState.Floor
 				if !(newState.Obstructed && newState.Behaviour == localElev.DoorOpen) {
 					ch_watchdogPet <- false
@@ -228,7 +228,7 @@ func Distributor(
 				for _, lostID := range peerUpdate.Lost {
 					for ID, elev := range elevators {
 						if lostID == ID {
-							elev.Behaviour = config.Unavailable 
+							elev.Behaviour = config.Unavailable
 
 							for floor := range elev.Requests {
 								for button := elevio.BT_HallUp; button <= elevio.BT_HallDown; button++ {
@@ -261,4 +261,3 @@ func Distributor(
 	}
 
 }
-

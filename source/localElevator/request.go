@@ -85,9 +85,9 @@ func RequestsNextAction(elev *Elevator) {
 func RequestsShouldStop(elev Elevator) bool {
 	switch elev.Direction {
 	case elevio.MD_Down:
-		return elev.Requests[elev.Floor][elevio.BT_HallDown] || elev.Requests[elev.Floor][elevio.BT_Cab] || !RequestsBelow(elev)
+		return elev.Requests[elev.Floor][elevio.BT_HallDown] || elev.Requests[elev.Floor][elevio.BT_Cab] || !RequestsBelow(elev) 
 	case elevio.MD_Up:
-		return elev.Requests[elev.Floor][elevio.BT_HallUp] || elev.Requests[elev.Floor][elevio.BT_Cab] || !RequestsAbove(elev)
+		return elev.Requests[elev.Floor][elevio.BT_HallUp] || elev.Requests[elev.Floor][elevio.BT_Cab] || !RequestsAbove(elev) 
 	default:
 		return true
 	}

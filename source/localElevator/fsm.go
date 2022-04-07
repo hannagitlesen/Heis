@@ -28,7 +28,7 @@ func FSM(
 	e := &elev
 
 	elevio.SetMotorDirection(elevio.MD_Down)
-	for { //Initialization: send the elevator down to closest floor
+	for { 
 		floor := <-ch_arrivedAtFloors
 		elevio.SetMotorDirection(elevio.MD_Stop)
 		e.Floor = floor

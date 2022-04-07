@@ -22,7 +22,7 @@ func main() {
 	ch_newLocalState := make(chan localElev.Elevator)
 	ch_orderToFSM := make(chan elevio.ButtonEvent, 100)
 	ch_buttonPress := make(chan elevio.ButtonEvent, 100)
-	ch_resetLocalHallOrders := make(chan bool)
+	ch_resetLocalHallOrders := make(chan bool, 100)
 
 	//Channels for communication between local elevator and elevio
 	ch_arrivedAtFloors := make(chan int)
